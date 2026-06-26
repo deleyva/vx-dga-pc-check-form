@@ -2,6 +2,8 @@
 
 Aplicación de escritorio para verificar el estado de equipos de trabajo en VitaLinux, desarrollada con **Tauri** (Rust + Web).
 
+![alt text](image.png)
+
 ## Características
 
 -   Formulario intuitivo de verificación de componentes
