@@ -45,13 +45,51 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
         Err(_) => "MOCK_USER_DELEYVA".to_string(),
     };
 
-    // 3. Insertar en el JSON recibido
+    // 3. Obtener las etiquetas de migasfree.
+    //
+    // Sin sudo, igual que migasfree-cid. Si el comando falla o no está, el
+    // informe se envía con las etiquetas vacías en vez de bloquear la
+    // aplicación: reportar el estado del equipo importa más que las etiquetas.
+    //
+    // A diferencia del CID, aquí NO se cae a stderr cuando stdout viene vacío:
+    // un mensaje de error guardado como si fuera una etiqueta contaminaría los
+    // informes en silencio.
+    let etiquetas = match Command::new("vx-migasfree-tags").arg("-g").output() {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            println!(
+                "[DEBUG] vx-migasfree-tags -g exit={} stdout='{}' stderr='{}'",
+                output.status, stdout, stderr
+            );
+            if output.status.success() {
+                // Varias etiquetas pueden venir en líneas distintas; se envían
+                // en una sola cadena separadas por espacios.
+                stdout
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| !l.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            } else {
+                eprintln!("[ERROR] vx-migasfree-tags devolvió {}", output.status);
+                String::new()
+            }
+        }
+        Err(e) => {
+            eprintln!("[ERROR] no se pudo ejecutar 'vx-migasfree-tags -g': {}", e);
+            String::new()
+        }
+    };
+
+    // 4. Insertar en el JSON recibido
     if let Some(obj) = data.as_object_mut() {
         obj.insert("migasfree_cid".to_string(), serde_json::json!(cid));
         obj.insert("usuario_grafico".to_string(), serde_json::json!(user_grafico));
+        obj.insert("etiquetas".to_string(), serde_json::json!(etiquetas));
     }
 
-    // 4. Get API URL and check dry-run mode
+    // 5. Get API URL and check dry-run mode
     let api_url = get_api_url();
     let dry_run = is_dry_run();
 
@@ -88,7 +126,7 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
         }
     }
 
-    // 5. Cerrar la aplicación
+    // 6. Cerrar la aplicación
     app_handle.exit(0);
 }
 
