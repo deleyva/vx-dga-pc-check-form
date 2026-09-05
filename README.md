@@ -84,22 +84,39 @@ npm run dev
 npm run build
 ```
 
-## Estructura del JSON generado
+## Estructura del JSON enviado
+
+El formulario (`script.js`) construye `timestamp`, `verificacion_equipos` y
+`resumen`. El backend en Rust (`src-tauri/src/main.rs`) añade tres campos más
+antes de enviarlo, ejecutando comandos del sistema:
+
+| Campo | De dónde sale |
+|---|---|
+| `migasfree_cid` | `/usr/bin/migasfree-cid` |
+| `usuario_grafico` | `vx-usuario-grafico` |
+| `etiquetas` | `vx-migasfree-tags -g` |
+
+Ninguno de los tres usa `sudo`. Si alguno falla, el informe se envía igual con
+ese campo vacío: reportar el estado del equipo importa más que el dato que falte.
 
 ```json
 {
-  "timestamp": "2024-11-08T10:30:00.000Z",
-  "empresa": "VITALINUX",
-  "tipo_verificacion": "equipos_escritorio",
+  "timestamp": "2026-09-05T10:30:00.000Z",
+  "migasfree_cid": "12345",
+  "usuario_grafico": "jgarcia",
+  "etiquetas": "aula-musica planta-1",
   "verificacion_equipos": {
     "pantalla": {
-      "estado": "correcto|defectuoso",
+      "estado": "correcto|defectuoso|no_verificado",
       "problema": "descripción del problema",
       "obligatorio": true
     }
   },
   "resumen": {
     "total_componentes": 5,
+    "componentes_obligatorios": 2,
+    "componentes_opcionales": 3,
+    "componentes_verificados": 5,
     "componentes_correctos": 4,
     "componentes_defectuosos": 1,
     "equipo_operativo": false,
@@ -108,18 +125,22 @@ npm run build
 }
 ```
 
+El servidor que lo recibe es [vx-registro-de-uso](https://github.com/deleyva/vx-registro-de-uso).
+Almacena estos campos y descarta en silencio cualquier otro, así que las
+versiones antiguas de esta aplicación siguen funcionando sin cambios.
+
 ## Configuración de la API
 
 ### Variable de Entorno VX_API_URL
 
-La variable veine VX_API_URL viene configurada por defecto al instalar la aplicación con el valor \`<http://servidor.vx:3001/v1/report>.
+La variable VX_API_URL viene configurada por defecto al instalar la aplicación con el valor \`<http://servidor.vx:3001/v1/report>.
 
 Se puede sobrescribir con una variable de entorno `VX_API_URL` en el sistema.
 
 Para un usuario concreto:
 
 ```bash
-VX_API_URL="http://192.168.1.105:3001/v1/report" vx-dga-pc-check-form
+VX_API_URL="http://servidor.vx:3001/v1/report" vx-dga-pc-check-form
 ```
 
 Para configurarlo de forma permanente para **todos los usuarios del sistema**:
@@ -127,7 +148,7 @@ Para configurarlo de forma permanente para **todos los usuarios del sistema**:
 ```bash
 # Crear fichero de entorno global
 sudo tee /etc/environment.d/vx-dga-pc-check-form.conf << 'EOF'
-VX_API_URL="http://192.168.1.105:3001/v1/report"
+VX_API_URL="http://servidor.vx:3001/v1/report"
 EOF
 ```
 
@@ -137,7 +158,7 @@ Alternativa con `/etc/environment` (compatible con sistemas sin `environment.d`)
 
 ```bash
 # Añadir al final de /etc/environment
-echo 'VX_API_URL="http://192.168.1.105:3001/v1/report"' | sudo tee -a /etc/environment
+echo 'VX_API_URL="http://servidor.vx:3001/v1/report"' | sudo tee -a /etc/environment
 ```
 
 ### Modo Dry-Run (Testing)
@@ -148,10 +169,15 @@ vx-dga-pc-check-form --dry-run
 
 ## Comandos del Sistema
 
-```bash
-# Obtener CID
-migasfree-cid
+Los tres que ejecuta la aplicación al enviar un informe. Ninguno necesita
+`sudo`; para depurar un equipo, ejecútalos a mano tal cual:
 
-# Obtener usuario gráfico
-vx-usuario-grafico
+```bash
+migasfree-cid           # identificador del equipo
+vx-usuario-grafico      # usuario con sesión gráfica
+vx-migasfree-tags -g    # etiquetas del equipo
 ```
+
+Si `vx-migasfree-tags` no está instalado en un equipo, sus informes llegarán
+sin etiquetas y la columna correspondiente del panel saldrá vacía. El resto
+del informe se envía con normalidad.
