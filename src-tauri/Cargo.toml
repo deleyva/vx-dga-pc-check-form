@@ -1,6 +1,6 @@
 [package]
 name = "vx-dga-pc-check-form"
-version = "1.0.10"
+version = "1.0.25"
 description = "Aplicación de verificación de equipos VITALINUX"
 authors = ["VITALINUX Team"]
 license = ""
