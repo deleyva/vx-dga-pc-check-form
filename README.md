@@ -94,10 +94,11 @@ antes de enviarlo, ejecutando comandos del sistema:
 |---|---|
 | `migasfree_cid` | `/usr/bin/migasfree-cid` |
 | `usuario_grafico` | `vx-usuario-grafico` |
-| `etiquetas` | `vx-migasfree-tags -g` |
+| `etiquetas` | `sudo -n vx-migasfree-tags -g` |
 
-Ninguno de los tres usa `sudo`. Si alguno falla, el informe se envía igual con
-ese campo vacío: reportar el estado del equipo importa más que el dato que falte.
+Solo el de las etiquetas usa `sudo`, porque `vx-migasfree-tags -g` necesita
+root. Si alguno falla, el informe se envía igual con ese campo vacío: reportar
+el estado del equipo importa más que el dato que falte.
 
 ```json
 {
@@ -169,15 +170,38 @@ vx-dga-pc-check-form --dry-run
 
 ## Comandos del Sistema
 
-Los tres que ejecuta la aplicación al enviar un informe. Ninguno necesita
-`sudo`; para depurar un equipo, ejecútalos a mano tal cual:
+Los tres que ejecuta la aplicación al enviar un informe. Para depurar un
+equipo, ejecútalos a mano tal cual:
 
 ```bash
-migasfree-cid           # identificador del equipo
-vx-usuario-grafico      # usuario con sesión gráfica
-vx-migasfree-tags -g    # etiquetas del equipo
+migasfree-cid                # identificador del equipo
+vx-usuario-grafico           # usuario con sesión gráfica
+sudo -n vx-migasfree-tags -g # etiquetas del equipo
 ```
 
-Si `vx-migasfree-tags` no está instalado en un equipo, sus informes llegarán
-sin etiquetas y la columna correspondiente del panel saldrá vacía. El resto
-del informe se envía con normalidad.
+### Las etiquetas necesitan sudo sin contraseña
+
+`vx-migasfree-tags -g` requiere root, y la aplicación arranca sola con la
+sesión gráfica: no tiene tty donde pedir una contraseña. Por eso invoca
+`sudo -n` (non-interactive), que falla en el acto en lugar de bloquear la
+interfaz. Para que las etiquetas lleguen de verdad, cada equipo necesita una
+regla NOPASSWD:
+
+```bash
+echo '%users ALL=(root) NOPASSWD: /usr/bin/vx-migasfree-tags' \
+  | sudo tee /etc/sudoers.d/vx-migasfree-tags
+sudo chmod 440 /etc/sudoers.d/vx-migasfree-tags
+```
+
+Comprobarlo en un equipo, como el usuario de la sesión gráfica:
+
+```bash
+sudo -n vx-migasfree-tags -g; echo "exit=$?"
+```
+
+Si sale `sudo: a password is required`, falta la regla y los informes de ese
+equipo llegarán sin etiquetas.
+
+Si `vx-migasfree-tags` no está instalado en un equipo, o falta la regla de
+sudoers, sus informes llegarán sin etiquetas y la columna correspondiente del
+panel saldrá vacía. El resto del informe se envía con normalidad.

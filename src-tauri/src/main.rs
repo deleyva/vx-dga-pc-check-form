@@ -47,19 +47,29 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
 
     // 3. Obtener las etiquetas de migasfree.
     //
-    // Sin sudo, igual que migasfree-cid. Si el comando falla o no está, el
-    // informe se envía con las etiquetas vacías en vez de bloquear la
-    // aplicación: reportar el estado del equipo importa más que las etiquetas.
+    // Con sudo: vx-migasfree-tags -g necesita root. Se usa `sudo -n`
+    // (non-interactive) a propósito — la app arranca sola con la sesión
+    // gráfica y no tiene tty, así que sin `-n` sudo podría lanzar un diálogo
+    // pidiendo contraseña de root al enviar el formulario y dejar la interfaz
+    // bloqueada. Requiere una regla NOPASSWD en /etc/sudoers.d para
+    // vx-migasfree-tags; sin ella las etiquetas llegarán vacías.
+    //
+    // Si el comando falla o no está, el informe se envía con las etiquetas
+    // vacías en vez de bloquear la aplicación: reportar el estado del equipo
+    // importa más que las etiquetas.
     //
     // A diferencia del CID, aquí NO se cae a stderr cuando stdout viene vacío:
     // un mensaje de error guardado como si fuera una etiqueta contaminaría los
     // informes en silencio.
-    let etiquetas = match Command::new("vx-migasfree-tags").arg("-g").output() {
+    let etiquetas = match Command::new("sudo")
+        .args(["-n", "vx-migasfree-tags", "-g"])
+        .output()
+    {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             println!(
-                "[DEBUG] vx-migasfree-tags -g exit={} stdout='{}' stderr='{}'",
+                "[DEBUG] sudo -n vx-migasfree-tags -g exit={} stdout='{}' stderr='{}'",
                 output.status, stdout, stderr
             );
             if output.status.success() {
@@ -72,12 +82,12 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
                     .collect::<Vec<_>>()
                     .join(" ")
             } else {
-                eprintln!("[ERROR] vx-migasfree-tags devolvió {}", output.status);
+                eprintln!("[ERROR] sudo -n vx-migasfree-tags devolvió {}", output.status);
                 String::new()
             }
         }
         Err(e) => {
-            eprintln!("[ERROR] no se pudo ejecutar 'vx-migasfree-tags -g': {}", e);
+            eprintln!("[ERROR] no se pudo ejecutar 'sudo -n vx-migasfree-tags -g': {}", e);
             String::new()
         }
     };
