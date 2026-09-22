@@ -47,12 +47,14 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
 
     // 3. Obtener las etiquetas de migasfree.
     //
-    // Con sudo: vx-migasfree-tags -g necesita root. Se usa `sudo -n`
-    // (non-interactive) a propósito — la app arranca sola con la sesión
-    // gráfica y no tiene tty, así que sin `-n` sudo podría lanzar un diálogo
-    // pidiendo contraseña de root al enviar el formulario y dejar la interfaz
-    // bloqueada. Requiere una regla NOPASSWD en /etc/sudoers.d para
-    // vx-migasfree-tags; sin ella las etiquetas llegarán vacías.
+    // Con sudo: vx-migasfree-tags -g necesita root. VitaLinux ya lo trae en
+    // sudoers sin contraseña, así que la llamada pasa sin más.
+    //
+    // El `-n` (non-interactive) es un cinturón de seguridad: la app arranca
+    // sola con la sesión gráfica y no tiene tty, así que en un equipo al que
+    // le faltara esa regla, sin `-n` sudo podría abrir un diálogo pidiendo
+    // contraseña de root al enviar el formulario y dejar la interfaz
+    // bloqueada. Con `-n` falla en el acto y las etiquetas salen vacías.
     //
     // Si el comando falla o no está, el informe se envía con las etiquetas
     // vacías en vez de bloquear la aplicación: reportar el estado del equipo

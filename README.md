@@ -179,29 +179,27 @@ vx-usuario-grafico           # usuario con sesión gráfica
 sudo -n vx-migasfree-tags -g # etiquetas del equipo
 ```
 
-### Las etiquetas necesitan sudo sin contraseña
+### Por qué las etiquetas llevan `sudo -n`
 
-`vx-migasfree-tags -g` requiere root, y la aplicación arranca sola con la
-sesión gráfica: no tiene tty donde pedir una contraseña. Por eso invoca
-`sudo -n` (non-interactive), que falla en el acto en lugar de bloquear la
-interfaz. Para que las etiquetas lleguen de verdad, cada equipo necesita una
-regla NOPASSWD:
+`vx-migasfree-tags -g` requiere root. VitaLinux ya trae ese comando
+configurado en sudoers para que no pida contraseña, así que la aplicación
+puede invocarlo directamente.
 
-```bash
-echo '%users ALL=(root) NOPASSWD: /usr/bin/vx-migasfree-tags' \
-  | sudo tee /etc/sudoers.d/vx-migasfree-tags
-sudo chmod 440 /etc/sudoers.d/vx-migasfree-tags
-```
+El `-n` (non-interactive) es un cinturón de seguridad: la aplicación arranca
+sola con la sesión gráfica y no tiene tty donde escribir una contraseña. Si
+un equipo llegara sin esa regla, `sudo -n` falla en el acto y el informe sale
+sin etiquetas, en lugar de abrir un diálogo pidiendo la contraseña de root y
+dejar la interfaz bloqueada al enviar el formulario.
 
-Comprobarlo en un equipo, como el usuario de la sesión gráfica:
+Para comprobarlo en un equipo, como el usuario de la sesión gráfica:
 
 ```bash
 sudo -n vx-migasfree-tags -g; echo "exit=$?"
 ```
 
-Si sale `sudo: a password is required`, falta la regla y los informes de ese
-equipo llegarán sin etiquetas.
+Si sale `sudo: a password is required`, ese equipo tiene la configuración de
+sudoers incompleta y sus informes llegarán sin etiquetas.
 
-Si `vx-migasfree-tags` no está instalado en un equipo, o falta la regla de
-sudoers, sus informes llegarán sin etiquetas y la columna correspondiente del
-panel saldrá vacía. El resto del informe se envía con normalidad.
+Si `vx-migasfree-tags` no está instalado en un equipo, sus informes llegarán
+sin etiquetas y la columna correspondiente del panel saldrá vacía. El resto
+del informe se envía con normalidad.
