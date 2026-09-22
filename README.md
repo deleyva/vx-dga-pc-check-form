@@ -55,11 +55,12 @@ O sigue los pasos manualmente:
 # 1. Bump versión en package.json + package-lock.json
 npm version 1.0.21 --no-git-tag-version
 
-# 2. Bump versión en tauri.conf.json (npm no lo toca)
+# 2. Bump versión en tauri.conf.json y Cargo.toml (npm no los toca)
 sed -i 's/"version": "1.0.16"/"version": "1.0.21"/' src-tauri/tauri.conf.json
+sed -i '1,10s/^version = "1.0.16"/version = "1.0.21"/' src-tauri/Cargo.toml
 
 # 3. Commit, tag y push
-git add package.json package-lock.json src-tauri/tauri.conf.json
+git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
 git commit -m "Bump version to v1.0.21"
 git tag v1.0.21
 git push && git push origin v1.0.21
@@ -67,9 +68,46 @@ git push && git push origin v1.0.21
 
 GitHub Actions construye el `.deb` y crea el release con la versión correcta.
 
-> **Importante:** La versión en `package.json` y `tauri.conf.json` debe coincidir con el tag. Si no, el título del release no coincidirá con el tag.
+> **Importante:** La versión en `package.json`, `tauri.conf.json` y `src-tauri/Cargo.toml` debe coincidir con el tag. Si no, el título del release no coincidirá con el tag y el binario se identificará con la versión vieja. `src-tauri/Cargo.lock` está en `.gitignore`: lo regenera cargo en el build.
 
 Alternativamente puedes usar `./release.sh` que automatiza todo el proceso (bump, build, tag, push).
+
+### Cómo llega el autostart al `.deb`
+
+Dos ficheros tienen que acabar fuera de las rutas que Tauri maneja por su
+cuenta:
+
+| Fichero del repo | Destino en el equipo |
+|---|---|
+| `src-tauri/autostart/vx-dga-pc-check-form.desktop` | `/etc/xdg/autostart/` |
+| `src-tauri/autostart/vx-dga-pc-check-form.png` | `/usr/share/pixmaps/` |
+
+Los coloca el mapa `tauri.bundle.deb.files` de `tauri.conf.json`. **La clave es
+el destino y el valor el origen**, no al revés:
+
+```json
+"files": {
+  "/etc/xdg/autostart/vx-dga-pc-check-form.desktop": "autostart/vx-dga-pc-check-form.desktop"
+}
+```
+
+Escrito del revés, Tauri toma `/etc/xdg/autostart/` **del contenedor de build**
+como origen y vuelca su contenido en un directorio `/autostart/…` en la raíz
+del equipo. Estuvo así desde abril hasta v1.0.27: el autostart funcionaba
+igualmente porque el paso «Inject autostart files into .deb» de la Action
+copiaba los ficheros a mano después del build, y ese parche tapaba el fallo
+mientras cada paquete instalaba basura del contenedor en `/autostart/`.
+
+Ese paso de la Action se mantiene a propósito — garantiza los ficheros y es
+quien renombra el `.deb` y exporta `DEB_PATH`/`DEB_NAME` para la release.
+
+Al tocar el empaquetado, comprueba el paquete antes de distribuirlo:
+
+```bash
+gh release download v<VERSION> --pattern '*.deb'
+ar x vx-dga-pc-check-form_<VERSION>_amd64.deb
+zstd -d -c data.tar.zst | tar tf -   # no debe aparecer ningún ./autostart/
+```
 
 ## Desarrollo
 

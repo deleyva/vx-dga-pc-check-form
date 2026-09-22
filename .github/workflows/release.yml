@@ -50,6 +50,13 @@ jobs:
       - name: Get version
         run: echo "PACKAGE_VERSION=$(node -pe "require('./package.json').version")" >> $GITHUB_ENV
 
+      # Desde v1.0.27 el mapa `files` de tauri.conf.json ya coloca estos dos
+      # ficheros por sí solo (antes estaba invertido y no ponía ninguno: este
+      # paso, añadido en d09e7d5, es lo que hacía funcionar el autostart).
+      # Se mantiene por dos razones: garantiza los ficheros aunque cambie el
+      # bundler, y es quien renombra el .deb a un nombre estable y exporta
+      # DEB_PATH/DEB_NAME para el paso de release. El cp sobrescribe con el
+      # mismo contenido, así que es idempotente.
       - name: Inject autostart files into .deb
         run: |
           ORIG_DEB=$(find src-tauri/target/release/bundle/deb -name "*.deb" | head -1)

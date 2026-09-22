@@ -38,8 +38,8 @@
         "depends": ["libwebkit2gtk-4.0-37", "libgtk-3-0"],
         "desktopTemplate": "desktop-template.desktop",
         "files": {
-          "autostart/vx-dga-pc-check-form.desktop": "/etc/xdg/autostart/",
-          "autostart/vx-dga-pc-check-form.png": "/usr/share/pixmaps/"
+          "/etc/xdg/autostart/vx-dga-pc-check-form.desktop": "autostart/vx-dga-pc-check-form.desktop",
+          "/usr/share/pixmaps/vx-dga-pc-check-form.png": "autostart/vx-dga-pc-check-form.png"
         }
       },
       "externalBin": [],
