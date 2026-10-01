@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "vx-dga-pc-check-form",
-    "version": "1.0.27"
+    "version": "1.0.28"
   },
   "tauri": {
     "allowlist": {
