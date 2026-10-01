@@ -94,14 +94,32 @@ fn submit_form(app_handle: tauri::AppHandle, mut data: serde_json::Value) {
         }
     };
 
-    // 4. Insertar en el JSON recibido
+    // 4. Obtener el nombre del equipo. En las aulas se gestiona por nombre, no
+    // por CID (petición del IES Goya, soporte #10729). Si falla, el informe se
+    // envía con el nombre vacío y el panel cae al CID.
+    let hostname = match Command::new("hostname").output() {
+        Ok(output) if output.status.success() => {
+            String::from_utf8_lossy(&output.stdout).trim().to_string()
+        }
+        Ok(output) => {
+            eprintln!("[ERROR] hostname devolvió {}", output.status);
+            String::new()
+        }
+        Err(e) => {
+            eprintln!("[ERROR] no se pudo ejecutar 'hostname': {}", e);
+            String::new()
+        }
+    };
+
+    // 5. Insertar en el JSON recibido
     if let Some(obj) = data.as_object_mut() {
         obj.insert("migasfree_cid".to_string(), serde_json::json!(cid));
         obj.insert("usuario_grafico".to_string(), serde_json::json!(user_grafico));
         obj.insert("etiquetas".to_string(), serde_json::json!(etiquetas));
+        obj.insert("hostname".to_string(), serde_json::json!(hostname));
     }
 
-    // 5. Get API URL and check dry-run mode
+    // 6. Get API URL and check dry-run mode
     let api_url = get_api_url();
     let dry_run = is_dry_run();
 

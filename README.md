@@ -125,7 +125,7 @@ npm run build
 ## Estructura del JSON enviado
 
 El formulario (`script.js`) construye `timestamp`, `verificacion_equipos` y
-`resumen`. El backend en Rust (`src-tauri/src/main.rs`) añade tres campos más
+`resumen`. El backend en Rust (`src-tauri/src/main.rs`) añade cuatro campos más
 antes de enviarlo, ejecutando comandos del sistema:
 
 | Campo | De dónde sale |
@@ -133,6 +133,7 @@ antes de enviarlo, ejecutando comandos del sistema:
 | `migasfree_cid` | `/usr/bin/migasfree-cid` |
 | `usuario_grafico` | `vx-usuario-grafico` |
 | `etiquetas` | `sudo -n vx-migasfree-tags -g` |
+| `hostname` | `hostname` (desde la 1.0.28) |
 
 Solo el de las etiquetas usa `sudo`, porque `vx-migasfree-tags -g` necesita
 root. Si alguno falla, el informe se envía igual con ese campo vacío: reportar
@@ -144,6 +145,7 @@ el estado del equipo importa más que el dato que falte.
   "migasfree_cid": "12345",
   "usuario_grafico": "jgarcia",
   "etiquetas": "aula-musica planta-1",
+  "hostname": "a12-pc07",
   "verificacion_equipos": {
     "pantalla": {
       "estado": "correcto|defectuoso|no_verificado",
